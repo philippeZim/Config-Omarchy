@@ -1,0 +1,12 @@
+# Personal settings (account name), see local.env.example
+local.env
+
+# VPN profiles hold a private key; download yours from the university
+*.ovpn
+
+# Never commit key material or credentials
+*.pem
+*.key
+*.p12
+*.pfx
+.env

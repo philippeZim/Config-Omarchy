@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "setup.workspaces",
+  "name": "Shared Workspaces",
+  "version": "1.0.0",
+  "author": "Omarchy_Setup",
+  "description": "One row of workspaces shared by every monitor",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "Workspaces.qml"
+  },
+  "barWidget": {
+    "displayName": "Shared Workspaces",
+    "description": "One row of workspaces shared by every monitor",
+    "category": "Compositor",
+    "allowMultiple": false
+  },
+  "omarchy": {
+    "clonedFrom": "omarchy.workspaces"
+  }
+}

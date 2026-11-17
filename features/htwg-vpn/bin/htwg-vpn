@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# Connects to the HTWG Konstanz VPN without asking for anything: the password
+# and the one-time-code secret come from the login keyring, and the code is
+# appended to the password as the university's server expects.
+#
+#   htwg-vpn up | down | toggle | status
+set -euo pipefail
+
+CONNECTION="HTWG-VPN"
+
+fail() {
+  echo "htwg-vpn: $*" >&2
+  notify-send -a "HTWG-VPN" "HTWG-VPN" "$*" 2>/dev/null || true
+  exit 1
+}
+
+secret() { secret-tool lookup service htwg-vpn kind "$1" 2>/dev/null; }
+
+active() { nmcli -t -f NAME connection show --active | grep -qxF "$CONNECTION"; }
+
+up() {
+  active && return 0
+
+  local password seed algorithm otp
+  password="$(secret password)" || true
+  seed="$(secret totp)" || true
+  algorithm="$(secret totp-algo)" || true
+  [[ -n $password && -n $seed ]] || fail "Password or OTP secret missing. Run the Omarchy_Setup installer again."
+
+  # A code about to expire could be stale by the time the server checks it.
+  (( $(date +%s) % 30 < 27 )) || sleep 4
+  otp="$(oathtool --totp="${algorithm:-SHA1}" -b - <<<"$seed")" || fail "Could not generate the one-time code."
+
+  # Handed over through a pipe, so the password never shows in a process list.
+  nmcli connection up id "$CONNECTION" \
+    passwd-file <(printf 'vpn.secrets.password:%s%s\n' "$password" "$otp") >/dev/null ||
+    fail "Connecting failed."
+}
+
+down() {
+  active || return 0
+  nmcli connection down id "$CONNECTION" >/dev/null || fail "Disconnecting failed."
+}
+
+case "${1:-}" in
+up) up ;;
+down) down ;;
+toggle) if active; then down; else up; fi ;;
+status) if active; then echo on; else echo off; fi ;;
+*)
+  echo "Usage: htwg-vpn up | down | toggle | status" >&2
+  exit 1
+  ;;
+esac
